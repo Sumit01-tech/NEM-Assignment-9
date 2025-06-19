@@ -1,0 +1,128 @@
+// 1. Calculate the average marks per subject
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$subject",
+      avgMarks: { $avg: "$marks" }
+    }
+  }
+]);
+
+// 2. Find the highest and lowest marks in each subject
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$subject",
+      highestMarks: { $max: "$marks" },
+      lowestMarks: { $min: "$marks" }
+    }
+  }
+]);
+
+// 3. Count the number of students appearing for each subject
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$subject",
+      studentCount: { $sum: 1 }
+    }
+  }
+]);
+
+// 4. Identify students scoring above 80 marks in any subject
+db.students.aggregate([
+  {
+    $match: {
+      marks: { $gt: 80 }
+    }
+  }
+]);
+
+// 5. Determine the total marks obtained by all students
+db.students.aggregate([
+  {
+    $group: {
+      _id: null,
+      totalMarks: { $sum: "$marks" }
+    }
+  }
+]);
+
+// 6. Group students by class and find the average marks per class
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$class",
+      avgMarks: { $avg: "$marks" }
+    }
+  }
+]);
+
+// 7. Identify the subject with the highest average marks
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$subject",
+      avgMarks: { $avg: "$marks" }
+    }
+  },
+  { $sort: { avgMarks: -1 } },
+  { $limit: 1 }
+]);
+
+// 8. Find students scoring less than 70 marks and categorize them as "Needs Improvement"
+db.students.aggregate([
+  {
+    $match: { marks: { $lt: 70 } }
+  },
+  {
+    $project: {
+      name: 1,
+      subject: 1,
+      marks: 1,
+      status: { $literal: "Needs Improvement" }
+    }
+  }
+]);
+
+// 9. Find the top 2 highest-scoring students in each subject
+db.students.aggregate([
+  {
+    $sort: { subject: 1, marks: -1 }
+  },
+  {
+    $group: {
+      _id: "$subject",
+      topStudents: {
+        $push: { name: "$name", marks: "$marks" }
+      }
+    }
+  },
+  {
+    $project: {
+      topStudents: { $slice: ["$topStudents", 2] }
+    }
+  }
+]);
+
+// 10. Calculate the pass percentage (students scoring ≥ 40 marks) per subject
+db.students.aggregate([
+  {
+    $group: {
+      _id: "$subject",
+      total: { $sum: 1 },
+      passed: {
+        $sum: {
+          $cond: [{ $gte: ["$marks", 40] }, 1, 0]
+        }
+      }
+    }
+  },
+  {
+    $project: {
+      passPercentage: {
+        $multiply: [{ $divide: ["$passed", "$total"] }, 100]
+      }
+    }
+  }
+]);
